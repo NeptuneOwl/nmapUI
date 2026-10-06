@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}{{ report.meta.target }} · VulnScan{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>{{ report.meta.target }}</h1>
+        <p class="muted">
+            {{ report.meta.mode or "normal" }} mode ·
+            started {{ (report.meta.started or "")[:19].replace('T',' ') }}
+        </p>
+    </div>
+    <a href="{{ url_for('new_scan') }}" class="btn btn-ghost">+ New Scan</a>
+</header>
+
+<section class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Hosts</div><div class="stat-val">{{ report.stats.total_hosts }}</div></div>
+    <div class="stat-card"><div class="stat-label">Hosts up</div><div class="stat-val text-success">{{ report.stats.up_hosts }}</div></div>
+    <div class="stat-card"><div class="stat-label">Open ports</div><div class="stat-val">{{ report.stats.open_ports }}</div></div>
+    <div class="stat-card"><div class="stat-label">Vulnerabilities</div><div class="stat-val text-danger">{{ report.stats.total_cves }}</div></div>
+</section>
+
+<section class="sev-bar">
+    {% for sev in ["CRITICAL","HIGH","MEDIUM","LOW"] %}
+    <div class="sev sev-{{ sev.lower() }}">
+        <div class="sev-num">{{ report.stats.severities.get(sev, 0) }}</div>
+        <div class="sev-lbl">{{ sev|title }}</div>
+    </div>
+    {% endfor %}
+</section>
+
+<div class="tabs">
+    <button class="tab active" data-tab="hosts">Hosts ({{ report.hosts|length }})</button>
+    <button class="tab" data-tab="cves">Vulnerabilities ({{ report.cves|length }})</button>
+</div>
+
+<!-- ================== HOSTS ================== -->
+<section id="tab-hosts" class="tab-panel active">
+    {% for h in report.hosts %}
+    <div class="entity-card" data-bs-target="#host-{{ loop.index }}">
+        <div class="entity-main">
+            <div>
+                <div class="entity-title">{{ h.ip }}</div>
+                <div class="entity-sub">
+                    {{ h.hostnames|join(', ') if h.hostnames else 'no hostname' }}
+                    · {{ h.ports|length }} port(s)
+                </div>
+            </div>
+            <span class="badge badge-{{ 'success' if h.state=='up' else 'secondary' }}">{{ h.state|upper }}</span>
+        </div>
+        <div class="collapse" id="host-{{ loop.index }}">
+            <div class="entity-detail">
+
+                {% if h.ports %}
+                <div class="subhead">Ports</div>
+                <table class="port-table">
+                    <thead>
+                        <tr><th>Port</th><th>State</th><th>Service</th><th>Product</th><th>Version</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for p in h.ports %}
+                        <tr>
+                            <td><code>{{ p.label }}</code></td>
+                            <td><span class="badge badge-{{ 'success' if p.state=='open' else 'secondary' }}">{{ p.state }}</span></td>
+                            <td>{{ p.name or "-" }}</td>
+                            <td>{{ p.product or "-" }}</td>
+                            <td>{{ p.version or "" }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+
+                <div class="subhead" style="margin-top:22px">📋 Full Details (raw nmap data)</div>
+                <div class="detail-card" style="padding:0">{{ h.raw_html|safe }}</div>
+
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</section>
+
+<!-- ================== CVES ================== -->
+<section id="tab-cves" class="tab-panel">
+    {% if report.cves %}
+    {% for c in report.cves %}
+    <div class="entity-card" data-bs-target="#cve-{{ loop.index }}">
+        <div class="entity-main">
+            <div>
+                <div class="entity-title">{{ c.id }}</div>
+                <div class="entity-sub">
+                    {{ c.published }} · score {{ c.score or "N/A" }} · {{ c.affected|length }} affected port(s)
+                </div>
+            </div>
+            <span class="badge badge-{{ c.severity|lower if c.severity in ['CRITICAL','HIGH','MEDIUM','LOW'] else 'secondary' }}">{{ c.severity }}</span>
+        </div>
+        <div class="collapse" id="cve-{{ loop.index }}">
+            <div class="entity-detail">
+                <p class="desc">{{ c.description }}</p>
+
+                {% if c.cwes %}
+                <div class="subhead">Weakness</div>
+                <div class="chip-row">
+                    {% for w in c.cwes %}<span class="chip">{{ w }}</span>{% endfor %}
+                </div>
+                {% endif %}
+
+                {% if c.affected %}
+                <div class="subhead">Affected</div>
+                <div class="chip-row">
+                    {% for a in c.affected %}
+                    <span class="chip">{{ a.host }} · {{ a.port }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if c.patches %}
+                <div class="subhead">🛡️ Patches &amp; Vendor Advisories</div>
+                <ul class="links">
+                    {% for p in c.patches[:10] %}
+                    <li><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.url }}</a></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                {% if c.references %}
+                <div class="subhead">References</div>
+                <ul class="links">
+                    {% for r in c.references[:12] %}
+                    <li><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.url }}</a></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                <div class="subhead" style="margin-top:22px">📋 Full CVE data</div>
+                <div class="detail-card" style="padding:0">{{ c.raw_html|safe }}</div>
+
+                <div class="entity-links">
+                    <a class="btn btn-sm btn-primary" href="{{ c.url }}" target="_blank" rel="noopener">Open on NVD</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state small"><p class="muted">No CVEs found for the detected services.</p></div>
+    {% endif %}
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll(".tab").forEach(t => {
+    t.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(x => x.classList.remove("active"));
+        t.classList.add("active");
+        document.getElementById("tab-" + t.dataset.tab).classList.add("active");
+    });
+});
+</script>
+{% endblock %}

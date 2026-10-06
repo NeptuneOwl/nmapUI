@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}VulnScan{% endblock %}</title>
+
+    <!-- External app styles (everything else) -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=99">
+
+    <!-- ======================================================
+         SIDEBAR — fully self-contained. Nothing outside this
+         block can affect it. No dependency on app.js or the
+         external stylesheet. If this doesn't work, nothing will.
+         ====================================================== -->
+    <style>
+        #vuln-hamburger {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            z-index: 2147483000;
+            width: 46px;
+            height: 46px;
+            border: 1px solid #334155;
+            background: #131a29;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 0;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+        #vuln-hamburger span {
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+
+        #vuln-sidebar {
+            position: fixed !important;
+            top: 0 !important;
+            left: -300px !important;      /* hidden by default */
+            bottom: 0 !important;
+            width: 260px !important;
+            max-width: 85vw !important;
+            background: #050810 !important;
+            color: #cbd5e1 !important;
+            padding: 24px 18px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            z-index: 2147482000 !important;
+            transition: left 0.28s ease !important;
+            overflow-y: auto !important;
+            border-right: 1px solid rgba(255,255,255,0.06) !important;
+            box-sizing: border-box !important;
+            margin: 0 !important;
+            transform: none !important;   /* kill any inherited transform */
+        }
+        #vuln-sidebar.vuln-open {
+            left: 0 !important;           /* visible */
+        }
+
+        #vuln-overlay {
+            position: fixed !important;
+            inset: 0 !important;
+            background: rgba(2,6,20,0.6) !important;
+            z-index: 2147481000 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            transition: opacity 0.2s ease !important;
+        }
+        #vuln-overlay.vuln-open {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+    </style>
+    <!-- ================== /SIDEBAR CSS ================== -->
+
+</head>
+<body>
+
+<!-- ================== SIDEBAR HTML ================== -->
+<button id="vuln-hamburger" type="button" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+</button>
+
+<aside id="vuln-sidebar" aria-hidden="true">
+    <div class="sidebar-brand">
+        <div class="brand-mark">V</div>
+        <div>
+            <div class="brand-title">VulnScan</div>
+            <div class="brand-sub">Nmap &middot; NVD</div>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <a href="{{ url_for('new_scan') }}" class="nav-link {% if active=='new-scan' %}active{% endif %}">
+            <span class="nav-icon">+</span> New Scan
+        </a>
+        <a href="{{ url_for('dashboard') }}" class="nav-link {% if active=='reports' %}active{% endif %}">
+            <span class="nav-icon">≡</span> Reports
+        </a>
+    </nav>
+
+    <div class="sidebar-foot">
+        <div class="muted">Scans stored in <code>./data/scans</code></div>
+    </div>
+</aside>
+
+<div id="vuln-overlay"></div>
+<!-- ================== /SIDEBAR HTML ================== -->
+
+<main class="content">
+    {% block content %}{% endblock %}
+</main>
+
+<script src="{{ url_for('static', filename='js/app.js') }}?v=99"></script>
+{% block scripts %}{% endblock %}
+
+<!-- ================== SIDEBAR JS ================== -->
+<script>
+(function () {
+    var btn     = document.getElementById("vuln-hamburger");
+    var sidebar = document.getElementById("vuln-sidebar");
+    var overlay = document.getElementById("vuln-overlay");
+
+    if (!btn || !sidebar) {
+        console.error("[VulnScan] sidebar elements missing");
+        return;
+    }
+
+    function setOpen(open) {
+        if (open) {
+            sidebar.classList.add("vuln-open");
+            overlay.classList.add("vuln-open");
+            btn.setAttribute("aria-expanded", "true");
+            sidebar.setAttribute("aria-hidden", "false");
+        } else {
+            sidebar.classList.remove("vuln-open");
+            overlay.classList.remove("vuln-open");
+            btn.setAttribute("aria-expanded", "false");
+            sidebar.setAttribute("aria-hidden", "true");
+        }
+    }
+
+    // THE one and only click handler — no duplicates, no fallbacks.
+    btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var isOpen = sidebar.classList.contains("vuln-open");
+        setOpen(!isOpen);
+    });
+
+    overlay.addEventListener("click", function () {
+        setOpen(false);
+    });
+
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") setOpen(false);
+    });
+})();
+</script>
+<!-- ================== /SIDEBAR JS ================== -->
+</body>
+</html>

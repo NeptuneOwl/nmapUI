@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Reports · VulnScan{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Reports</h1>
+        <p class="muted">Every scan you've run, newest first.</p>
+    </div>
+    <a href="{{ url_for('new_scan') }}" class="btn btn-primary">+ New Scan</a>
+</header>
+
+{% if scans %}
+<div class="cards-grid">
+    {% for s in scans %}
+    <div class="report-card" data-id="{{ s.id }}">
+        <div class="report-status status-{{ s.status or 'unknown' }}">
+            <span class="dot"></span> {{ s.status or "unknown" }}
+        </div>
+        <h3 class="report-target">{{ s.target }}</h3>
+        <div class="report-meta">
+            <span>{{ s.mode or "normal" }} mode</span>
+            &middot;
+            <span>{{ (s.started or "")[:19].replace('T',' ') }}</span>
+        </div>
+        <div class="report-actions">
+            <a class="btn btn-sm btn-primary" href="{{ url_for('report', scan_id=s.id) }}">Open</a>
+            <button class="btn btn-sm btn-ghost js-delete" data-id="{{ s.id }}">Delete</button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-emoji">🗂️</div>
+    <h2>No scans yet</h2>
+    <p class="muted">Run your first scan to populate this dashboard.</p>
+    <a href="{{ url_for('new_scan') }}" class="btn btn-primary">Start a scan</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll(".js-delete").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            if (!confirm("Delete this scan?")) return;
+            const id = btn.dataset.id;
+            await fetch(`/api/scans/${id}`, { method: "DELETE" });
+            btn.closest(".report-card").remove();
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+{% block title %}New Scan · VulnScan{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>New Scan</h1>
+        <p class="muted">Every nmap option, organised. Conflicting flags resolve automatically.</p>
+    </div>
+</header>
+
+<form id="scan-form" class="scan-form" autocomplete="off">
+    <label class="field">
+        <span>Target</span>
+        <input type="text" name="target"
+               placeholder="192.168.56.101  /  10.0.0.0/24  /  example.com"
+               required autofocus>
+    </label>
+
+    <div class="mode-switch">
+        <label class="mode-opt">
+            <input type="radio" name="mode" value="normal" checked>
+            <div>
+                <strong>Normal mode</strong>
+                <p class="muted">Service detection (<code>-sV</code>) on top 1024 ports. Fast &amp; safe.</p>
+            </div>
+        </label>
+        <label class="mode-opt">
+            <input type="radio" name="mode" value="options">
+            <div>
+                <strong>Options mode</strong>
+                <p class="muted">Full control — every nmap flag, grouped by category.</p>
+            </div>
+        </label>
+    </div>
+
+    <div id="options-panel" class="options-panel hidden">
+        <p class="option-cat-note">
+            ✨ Conflicting flags are resolved for you. Selecting one automatically
+            deselects the ones it can't be combined with.
+        </p>
+
+        <!-- ===================== 1. TARGET & PORTS ===================== -->
+        <details class="option-cat" open>
+            <summary>🎯 Target &amp; Ports</summary>
+            <div class="option-cat-body">
+                <div class="options-grid">
+                    <label class="field">
+                        <span>Ports (-p)</span>
+                        <input type="text" name="ports" value="1-1024" placeholder="22,80,443 or 1-65535">
+                    </label>
+                    <label class="field">
+                        <span>Top N ports (--top-ports)</span>
+                        <input type="number" name="top_ports" min="1" max="65535" placeholder="e.g. 100">
+                    </label>
+                    <label class="field">
+                        <span>Port ratio (--port-ratio)</span>
+                        <input type="text" name="port_ratio" placeholder="e.g. 0.1">
+                    </label>
+                    <label class="field">
+                        <span>Exclude ports (--exclude-ports)</span>
+                        <input type="text" name="exclude_ports" placeholder="22,3306">
+                    </label>
+                    <label class="field">
+                        <span>Exclude hosts (--exclude)</span>
+                        <input type="text" name="exclude_hosts" placeholder="10.0.0.5,10.0.0.6">
+                    </label>
+                </div>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="fast_scan" data-disables="ports top_ports port_ratio"><span><code>-F</code> Fast scan (top 100)</span></label>
+                    <label class="opt"><input type="checkbox" name="seq_ports"><span><code>-r</code> Sequential ports</span></label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 2. HOST DISCOVERY ===================== -->
+        <details class="option-cat">
+            <summary>📡 Host Discovery</summary>
+            <div class="option-cat-body">
+                <p class="option-cat-note">The two below are mutually exclusive with each other and with everything else.</p>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="no_ping" data-group="ping_mode"><span><code>-Pn</code> Skip host discovery</span></label>
+                    <label class="opt"><input type="checkbox" name="ping_only" data-group="ping_mode"><span><code>-sn</code> Ping scan only</span></label>
+                    <label class="opt"><input type="checkbox" name="list_scan" data-group="ping_mode"><span><code>-sL</code> List scan (no packets)</span></label>
+                    <label class="opt"><input type="checkbox" name="disable_arp_ping"><span><code>--disable-arp-ping</code></span></label>
+                </div>
+
+                <p class="option-cat-note" style="margin-top:14px">Advanced ping types (combine freely):</p>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="syn_ping"><span><code>-PS</code> TCP SYN ping</span></label>
+                    <label class="opt"><input type="checkbox" name="ack_ping"><span><code>-PA</code> TCP ACK ping</span></label>
+                    <label class="opt"><input type="checkbox" name="udp_ping"><span><code>-PU</code> UDP ping</span></label>
+                    <label class="opt"><input type="checkbox" name="sctp_ping"><span><code>-PY</code> SCTP ping</span></label>
+                    <label class="opt"><input type="checkbox" name="icmp_echo"><span><code>-PE</code> ICMP Echo</span></label>
+                    <label class="opt"><input type="checkbox" name="icmp_timestamp"><span><code>-PP</code> ICMP Timestamp</span></label>
+                    <label class="opt"><input type="checkbox" name="icmp_mask"><span><code>-PM</code> ICMP Address Mask</span></label>
+                    <label class="opt"><input type="checkbox" name="ip_proto_ping"><span><code>-PO</code> IP Protocol Ping</span></label>
+                    <label class="opt"><input type="checkbox" name="arp_ping"><span><code>-PR</code> ARP ping</span></label>
+                </div>
+
+                <div class="options-grid" style="margin-top:14px">
+                    <label class="field">
+                        <span>DNS servers (--dns-servers)</span>
+                        <input type="text" name="dns_servers" placeholder="8.8.8.8,1.1.1.1">
+                    </label>
+                </div>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="no_dns"><span><code>-n</code> Never resolve DNS</span></label>
+                    <label class="opt"><input type="checkbox" name="always_dns"><span><code>-R</code> Always resolve DNS</span></label>
+                    <label class="opt"><input type="checkbox" name="system_dns"><span><code>--system-dns</code></span></label>
+                    <label class="opt"><input type="checkbox" name="traceroute"><span><code>--traceroute</code></span></label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 3. SCAN TECHNIQUES ===================== -->
+        <details class="option-cat">
+            <summary>🔍 Scan Techniques</summary>
+            <div class="option-cat-body">
+                <p class="option-cat-note">Pick <strong>one</strong> primary technique. UDP is additive (works with SYN / Connect only).</p>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="syn_scan" data-group="primary_scan"><span><code>-sS</code> TCP SYN</span></label>
+                    <label class="opt"><input type="checkbox" name="connect_scan" data-group="primary_scan"><span><code>-sT</code> TCP Connect</span></label>
+                    <label class="opt"><input type="checkbox" name="ack_scan" data-group="primary_scan"><span><code>-sA</code> TCP ACK</span></label>
+                    <label class="opt"><input type="checkbox" name="window_scan" data-group="primary_scan"><span><code>-sW</code> TCP Window</span></label>
+                    <label class="opt"><input type="checkbox" name="maimon_scan" data-group="primary_scan"><span><code>-sM</code> TCP Maimon</span></label>
+                    <label class="opt"><input type="checkbox" name="null_scan" data-group="primary_scan"><span><code>-sN</code> TCP Null</span></label>
+                    <label class="opt"><input type="checkbox" name="fin_scan" data-group="primary_scan"><span><code>-sF</code> FIN</span></label>
+                    <label class="opt"><input type="checkbox" name="xmas_scan" data-group="primary_scan"><span><code>-sX</code> Xmas</span></label>
+                    <label class="opt"><input type="checkbox" name="idle_scan" data-group="primary_scan"><span><code>-sI</code> Idle / Zombie</span></label>
+                    <label class="opt"><input type="checkbox" name="sctp_init_scan" data-group="primary_scan"><span><code>-sY</code> SCTP INIT</span></label>
+                    <label class="opt"><input type="checkbox" name="sctp_cookie_scan" data-group="primary_scan"><span><code>-sZ</code> SCTP COOKIE ECHO</span></label>
+                    <label class="opt"><input type="checkbox" name="ip_protocol_scan" data-group="primary_scan"><span><code>-sO</code> IP Protocol</span></label>
+                    <label class="opt"><input type="checkbox" name="ftp_bounce" data-group="primary_scan"><span><code>-b</code> FTP Bounce</span></label>
+                </div>
+                <div class="checkbox-grid" style="margin-top:10px">
+                    <label class="opt"><input type="checkbox" name="udp_scan"><span><code>-sU</code> UDP scan</span></label>
+                </div>
+                <div class="options-grid" style="margin-top:14px">
+                    <label class="field">
+                        <span>Custom flags (--scanflags)</span>
+                        <input type="text" name="scanflags" placeholder="e.g. SYNURGACKPSH">
+                    </label>
+                    <label class="field">
+                        <span>Idle zombie host (-sI)</span>
+                        <input type="text" name="idle_zombie" placeholder="zombie.example.com:80">
+                    </label>
+                    <label class="field">
+                        <span>FTP bounce relay (-b)</span>
+                        <input type="text" name="ftp_relay" placeholder="user:pass@server:port">
+                    </label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 4. SERVICE / VERSION ===================== -->
+        <details class="option-cat">
+            <summary>🖥️ Service &amp; Version Detection</summary>
+            <div class="option-cat-body">
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="version_detect"><span><code>-sV</code> Version detection</span></label>
+                    <label class="opt"><input type="checkbox" name="version_light"><span><code>--version-light</code> intensity 2</span></label>
+                    <label class="opt"><input type="checkbox" name="version_all"><span><code>--version-all</code> intensity 9</span></label>
+                    <label class="opt"><input type="checkbox" name="version_trace"><span><code>--version-trace</code></span></label>
+                    <label class="opt"><input type="checkbox" name="all_ports"><span><code>--allports</code> don't skip any port</span></label>
+                </div>
+                <div class="options-grid" style="margin-top:14px">
+                    <label class="field">
+                        <span>Version intensity (0–9)</span>
+                        <input type="number" name="version_intensity" min="0" max="9" value="5">
+                    </label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 5. OS DETECTION ===================== -->
+        <details class="option-cat">
+            <summary>💻 OS Detection</summary>
+            <div class="option-cat-body">
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="os_detect"><span><code>-O</code> Enable OS detection</span></label>
+                    <label class="opt"><input type="checkbox" name="osscan_limit"><span><code>--osscan-limit</code></span></label>
+                    <label class="opt"><input type="checkbox" name="osscan_guess"><span><code>--osscan-guess</code> aggressive</span></label>
+                </div>
+                <div class="options-grid" style="margin-top:14px">
+                    <label class="field">
+                        <span>Max OS tries (--max-os-tries)</span>
+                        <input type="number" name="max_os_tries" min="1" max="10" placeholder="e.g. 5">
+                    </label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 6. NSE SCRIPTS ===================== -->
+        <details class="option-cat">
+            <summary>📜 NSE Scripts</summary>
+            <div class="option-cat-body">
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="script_default"><span><code>-sC</code> default scripts</span></label>
+                    <label class="opt"><input type="checkbox" name="script_vuln"><span><code>--script=vuln</code> vuln scripts</span></label>
+                    <label class="opt"><input type="checkbox" name="script_trace"><span><code>--script-trace</code></span></label>
+                </div>
+                <div class="options-grid" style="margin-top:14px">
+                    <label class="field">
+                        <span>Scripts (--script)</span>
+                        <input type="text" name="script" placeholder="default, vuln, http-*, smb-enum-shares">
+                    </label>
+                    <label class="field">
+                        <span>Script args (--script-args)</span>
+                        <input type="text" name="script_args" placeholder="user=admin,pass=admin">
+                    </label>
+                    <label class="field">
+                        <span>Script args file (--script-args-file)</span>
+                        <input type="text" name="script_args_file" placeholder="/path/to/args.txt">
+                    </label>
+                    <label class="field">
+                        <span>Script help (--script-help)</span>
+                        <input type="text" name="script_help" placeholder="script name(s)">
+                    </label>
+                </div>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="script_updatedb"><span><code>--script-updatedb</code> refresh script DB</span></label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 7. TIMING & PERFORMANCE ===================== -->
+        <details class="option-cat">
+            <summary>⏱️ Timing &amp; Performance</summary>
+            <div class="option-cat-body">
+                <div class="options-grid">
+                    <label class="field">
+                        <span>Timing template (-T)</span>
+                        <select name="timing">
+                            <option value="T0">T0 — paranoid</option>
+                            <option value="T1">T1 — sneaky</option>
+                            <option value="T2">T2 — polite</option>
+                            <option value="T3">T3 — normal</option>
+                            <option value="T4" selected>T4 — aggressive</option>
+                            <option value="T5">T5 — insane</option>
+                        </select>
+                    </label>
+                    <label class="field"><span>Min rate (--min-rate)</span><input type="number" name="min_rate" min="0"></label>
+                    <label class="field"><span>Max rate (--max-rate)</span><input type="number" name="max_rate" min="0"></label>
+                    <label class="field"><span>Min parallelism (--min-parallelism)</span><input type="number" name="min_parallelism" min="0"></label>
+                    <label class="field"><span>Max parallelism (--max-parallelism)</span><input type="number" name="max_parallelism" min="0"></label>
+                    <label class="field"><span>Min hostgroup (--min-hostgroup)</span><input type="number" name="min_hostgroup" min="0"></label>
+                    <label class="field"><span>Max hostgroup (--max-hostgroup)</span><input type="number" name="max_hostgroup" min="0"></label>
+                    <label class="field"><span>Max retries (--max-retries)</span><input type="number" name="max_retries" min="0"></label>
+                    <label class="field"><span>Host timeout (--host-timeout)</span><input type="text" name="host_timeout" placeholder="30m, 900s"></label>
+                    <label class="field"><span>Scan delay (--scan-delay)</span><input type="text" name="scan_delay" placeholder="1s, 500ms"></label>
+                    <label class="field"><span>Max scan delay (--max-scan-delay)</span><input type="text" name="max_scan_delay" placeholder="5s"></label>
+                    <label class="field"><span>Min RTT timeout</span><input type="text" name="min_rtt_timeout" placeholder="100ms"></label>
+                    <label class="field"><span>Max RTT timeout</span><input type="text" name="max_rtt_timeout" placeholder="10s"></label>
+                    <label class="field"><span>Initial RTT timeout</span><input type="text" name="initial_rtt_timeout" placeholder="500ms"></label>
+                </div>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="defeat_rst_ratelimit"><span><code>--defeat-rst-ratelimit</code></span></label>
+                    <label class="opt"><input type="checkbox" name="defeat_icmp_ratelimit"><span><code>--defeat-icmp-ratelimit</code></span></label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 8. FIREWALL / IDS EVASION ===================== -->
+        <details class="option-cat">
+            <summary>🛡️ Firewall / IDS Evasion &amp; Spoofing</summary>
+            <div class="option-cat-body">
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="fragment"><span><code>-f</code> Fragment packets</span></label>
+                    <label class="opt"><input type="checkbox" name="randomize_hosts"><span><code>--randomize-hosts</code></span></label>
+                    <label class="opt"><input type="checkbox" name="badsum"><span><code>--badsum</code> invalid checksums</span></label>
+                </div>
+                <div class="options-grid" style="margin-top:14px">
+                    <label class="field"><span>MTU (--mtu, multiple of 8)</span><input type="number" name="mtu" placeholder="24"></label>
+                    <label class="field"><span>Decoys (-D)</span><input type="text" name="decoys" placeholder="RND:5 or 10.0.0.1,ME"></label>
+                    <label class="field"><span>Spoof source IP (-S)</span><input type="text" name="spoof_ip" placeholder="1.2.3.4"></label>
+                    <label class="field"><span>Interface (-e)</span><input type="text" name="interface" placeholder="eth0"></label>
+                    <label class="field"><span>Source port (-g / --source-port)</span><input type="text" name="source_port" placeholder="53 or 5000-5100"></label>
+                    <label class="field"><span>Data length (--data-length)</span><input type="number" name="data_length" min="0" max="65535"></label>
+                    <label class="field"><span>Data string (--data-string)</span><input type="text" name="data_string" placeholder="some ASCII string"></label>
+                    <label class="field"><span>Data hex (--data)</span><input type="text" name="data_hex" placeholder="0xdeadbeef"></label>
+                    <label class="field"><span>IP options (--ip-options)</span><input type="text" name="ip_options" placeholder="R or S 192.168.0.7 or L 10.0.0.1"></label>
+                    <label class="field"><span>TTL (--ttl)</span><input type="number" name="ttl" min="0" max="255"></label>
+                    <label class="field"><span>Spoof MAC (--spoof-mac)</span><input type="text" name="spoof_mac" placeholder="0 / Apple / 00:11:22:33:44:55"></label>
+                </div>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="send_eth"><span><code>--send-eth</code></span></label>
+                    <label class="opt"><input type="checkbox" name="send_ip"><span><code>--send-ip</code></span></label>
+                    <label class="opt"><input type="checkbox" name="privileged"><span><code>--privileged</code></span></label>
+                    <label class="opt"><input type="checkbox" name="unprivileged"><span><code>--unprivileged</code></span></label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 9. OUTPUT & VERBOSITY ===================== -->
+        <details class="option-cat">
+            <summary>📝 Output &amp; Verbosity</summary>
+            <div class="option-cat-body">
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="verbose"><span><code>-v</code> Verbose</span></label>
+                    <label class="opt"><input type="checkbox" name="very_verbose"><span><code>-vv</code> Very verbose</span></label>
+                    <label class="opt"><input type="checkbox" name="debug"><span><code>-d</code> Debug</span></label>
+                    <label class="opt"><input type="checkbox" name="reason"><span><code>--reason</code> Show reason</span></label>
+                    <label class="opt"><input type="checkbox" name="open_only"><span><code>--open</code> Only open ports</span></label>
+                    <label class="opt"><input type="checkbox" name="packet_trace"><span><code>--packet-trace</code></span></label>
+                    <label class="opt"><input type="checkbox" name="log_errors"><span><code>--log-errors</code></span></label>
+                    <label class="opt"><input type="checkbox" name="append_output"><span><code>--append-output</code></span></label>
+                    <label class="opt"><input type="checkbox" name="iflist"><span><code>--iflist</code> List interfaces &amp; routes</span></label>
+                    <label class="opt"><input type="checkbox" name="release_memory"><span><code>--release-memory</code></span></label>
+                </div>
+                <div class="options-grid" style="margin-top:14px">
+                    <label class="field"><span>Resume (--resume)</span><input type="text" name="resume" placeholder="/path/to/prevscan.gnmap"></label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 10. IPv6 & MISC ===================== -->
+        <details class="option-cat">
+            <summary>🌐 IPv6 &amp; Misc</summary>
+            <div class="option-cat-body">
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="ipv6"><span><code>-6</code> Enable IPv6 scanning</span></label>
+                </div>
+                <div class="options-grid" style="margin-top:14px">
+                    <label class="field"><span>Datadir (--datadir)</span><input type="text" name="datadir" placeholder="/custom/nmap/data"></label>
+                    <label class="field"><span>Service DB (--servicedb)</span><input type="text" name="servicedb" placeholder="/custom/nmap-services"></label>
+                    <label class="field"><span>Version DB (--versiondb)</span><input type="text" name="versiondb" placeholder="/custom/nmap-service-probes"></label>
+                    <label class="field"><span>Nsock engine (--nsock-engine)</span>
+                        <select name="nsock_engine">
+                            <option value="">default</option>
+                            <option value="epoll">epoll</option>
+                            <option value="kqueue">kqueue</option>
+                            <option value="poll">poll</option>
+                            <option value="select">select</option>
+                        </select>
+                    </label>
+                    <label class="field"><span>Max hostgroup (--max-hostgroup)</span><input type="number" name="max_hostgroup2" min="0"></label>
+                </div>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="webxml"><span><code>--webxml</code> Portable XML stylesheet</span></label>
+                    <label class="opt"><input type="checkbox" name="no_stylesheet"><span><code>--no-stylesheet</code></span></label>
+                </div>
+            </div>
+        </details>
+
+        <!-- ===================== 11. PRESETS ===================== -->
+        <details class="option-cat">
+            <summary>⚡ Presets (one-click templates)</summary>
+            <div class="option-cat-body">
+                <p class="option-cat-note">
+                    Click any preset to apply a common configuration. You can still tweak individual flags after.
+                </p>
+                <div class="checkbox-grid">
+                    <label class="opt"><input type="checkbox" name="preset_intense"><span><code>-T4 -A -v</code> Intense scan</span></label>
+                    <label class="opt"><input type="checkbox" name="preset_intense_udp"><span><code>-sS -sU -T4 -A -v</code> Intense + UDP</span></label>
+                    <label class="opt"><input type="checkbox" name="preset_quick"><span><code>-T4 -F</code> Quick scan</span></label>
+                    <label class="opt"><input type="checkbox" name="preset_quick_plus"><span><code>-sV -T4 -O -F --version-light</code> Quick + OS</span></label>
+                    <label class="opt"><input type="checkbox" name="preset_ping"><span><code>-sn</code> Ping sweep</span></label>
+                    <label class="opt"><input type="checkbox" name="preset_regular"><span><code>-sV -T4 -O</code> Regular scan</span></label>
+                    <label class="opt"><input type="checkbox" name="preset_slow"><span><code>-sS -sU -T2</code> Slow comprehensive</span></label>
+                    <label class="opt"><input type="checkbox" name="preset_vuln"><span><code>-sV --script=vuln</code> Vulnerability scan</span></label>
+                </div>
+            </div>
+        </details>
+
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="submit-btn">Start scan</button>
+    </div>
+</form>
+
+<div id="progress" class="progress-wrap hidden">
+    <div class="progress">
+        <div id="progress-bar" class="progress-bar" style="width:5%"></div>
+    </div>
+    <div id="progress-text" class="muted">Starting…</div>
+</div>
+
+<div id="error-box" class="error-box hidden"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const form = document.getElementById("scan-form");
+const panel = document.getElementById("options-panel");
+const progress = document.getElementById("progress");
+const bar = document.getElementById("progress-bar");
+const ptext = document.getElementById("progress-text");
+const errBox = document.getElementById("error-box");
+const submitBtn = document.getElementById("submit-btn");
+
+form.addEventListener("change", (e) => {
+    if (e.target.name === "mode") {
+        panel.classList.toggle("hidden", e.target.value !== "options");
+    }
+
+    // Preset handler — turn off all preset boxes when one is picked
+    if (e.target.name && e.target.name.startsWith("preset_") && e.target.checked) {
+        document.querySelectorAll('.opt input[name^="preset_"]').forEach(x => {
+            if (x !== e.target) x.checked = false;
+        });
+    }
+});
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errBox.classList.add("hidden");
+
+    const target = form.querySelector('[name="target"]').value.trim();
+    const mode = form.querySelector('[name="mode"]:checked').value;
+
+    const options = {};
+    document.querySelectorAll('#options-panel input, #options-panel select').forEach(el => {
+        if (!el.name) return;
+        if (el.type === "checkbox") {
+            options[el.name] = el.checked;
+        } else if (el.type === "radio") {
+            if (el.checked) options[el.name] = el.value;
+        } else {
+            options[el.name] = el.value;
+        }
+    });
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Scanning…";
+    progress.classList.remove("hidden");
+
+    let r;
+    try {
+        r = await fetch("/api/scans", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ target, mode, options }),
+        });
+    } catch (err) {
+        errBox.textContent = "Network error: " + err.message;
+        errBox.classList.remove("hidden");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Start scan";
+        return;
+    }
+
+    const data = await r.json();
+    if (!r.ok) {
+        errBox.textContent = data.error || "Something went wrong.";
+        errBox.classList.remove("hidden");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Start scan";
+        return;
+    }
+
+    const id = data.id;
+    const poll = setInterval(async () => {
+        const s = await (await fetch(`/api/scans/${id}/status`)).json();
+        bar.style.width = (s.progress || 5) + "%";
+        ptext.textContent = s.step || "Working…";
+        if (s.status === "done") {
+            clearInterval(poll);
+            window.location.href = `/report/${id}`;
+        } else if (s.status === "error") {
+            clearInterval(poll);
+            errBox.textContent = s.error || "Scan failed.";
+            errBox.classList.remove("hidden");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Start scan";
+        }
+    }, 1200);
+});
+</script>
+{% endblock %}
