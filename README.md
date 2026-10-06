@@ -11,6 +11,7 @@ a simple web application that uses nmap to perform scans, generate a readable nm
 <img width="1910" height="930" alt="Screenshot from 2026-10-06 17-24-47" src="https://github.com/user-attachments/assets/0912e2c6-b101-4c74-939e-ee7cee6d4621" />
 <img width="1910" height="930" alt="Screenshot from 2026-10-06 17-24-43" src="https://github.com/user-attachments/assets/10ade9f3-4d05-45b5-a632-7661c35bcf43" />
 ---
+
 # install
 
 ```sh
